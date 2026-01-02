@@ -10,17 +10,29 @@ export async function POST(request: Request): Promise<NextResponse> {
       request,
       onBeforeGenerateToken: async () => {
         return {
-          allowedContentTypes: ['application/octet-stream', 'image/jpeg', 'image/png'], 
+          // STL, DXF ve diğer yaygın çizim formatlarına izin veriyoruz
+          allowedContentTypes: [
+            'application/octet-stream', 
+            'model/stl',               
+            'image/x-dxf',             
+            'application/dxf',         
+            'image/jpeg', 
+            'image/png',
+            'application/pdf'
+          ], 
           tokenPayload: JSON.stringify({}),
         };
       },
-      onUploadCompleted: async ({ blob }) => {
-        console.log('Dosya yüklendi:', blob.url);
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        console.log('Yükleme tamamlandı:', blob.url);
       },
     });
 
     return NextResponse.json(jsonResponse);
   } catch (error) {
-    return NextResponse.json({ error: (error as Error) .message }, { status: 400 });
+    return NextResponse.json(
+      { error: (error as Error).message },
+      { status: 400 }
+    );
   }
 }
