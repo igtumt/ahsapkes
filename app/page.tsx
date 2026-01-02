@@ -23,15 +23,15 @@ export default function Home() {
 
     try {
       setYukleniyor(true);
-      setMesaj("İşleminiz yapılıyor...");
+      setMesaj("İşleminiz yapılıyor, lütfen bekleyin...");
       
-      // 1. Vercel Blob'a yükle
+      // 1. Dosyayı Vercel Blob'a yüklüyoruz
       const newBlob = await upload(file.name, file, {
         access: 'public',
         handleUploadUrl: '/api/upload',
       });
 
-      // 2. Supabase'e kaydet
+      // 2. Gelen URL'i ve e-postayı Supabase'e kaydediyoruz
       const { error } = await supabase
         .from('basvurular')
         .insert([{ 
@@ -41,7 +41,14 @@ export default function Home() {
 
       if (error) throw error;
 
-      setMesaj("Başarılı! Dosyanız ve bilgileriniz alındı.");
+      // 3. Gmail Bildirimi Gönder (Az önce oluşturduğun /api/send rotasına istek atar)
+      await fetch('/api/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, fileUrl: newBlob.url }),
+      });
+
+      setMesaj("Başarılı! Bilgileriniz alındı, size dönüş yapacağız.");
       setEmail("");
       setFile(null);
     } catch (e: any) {
@@ -59,7 +66,7 @@ export default function Home() {
     }}>
       <h1 style={{ color: '#3e2723', fontSize: '3.5rem', marginBottom: '10px' }}>AhşapKes</h1>
       <p style={{ color: '#5d4037', fontSize: '1.1rem', marginBottom: '30px' }}>
-        Lazer kesim için çiziminizi yükleyin.
+        Teklif için datayı yükleyin.
       </p>
       
       <div style={{ 
@@ -67,7 +74,6 @@ export default function Home() {
         borderRadius: '16px', backgroundColor: '#ffffff', width: '100%', maxWidth: '450px',
         boxShadow: '0 10px 25px rgba(0,0,0,0.05)'
       }}>
-        {/* E-posta Alanı */}
         <div style={{ marginBottom: '20px' }}>
           <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#3e2723' }}>E-posta</label>
           <input 
@@ -76,13 +82,14 @@ export default function Home() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             style={{ 
-              width: '100%', padding: '12px', border: '1px solid #d7ccc8', 
-              borderRadius: '8px', fontSize: '1rem', outlineColor: '#3e2723' 
+              width: '100%', padding: '12px', border: '1px solid #3e2723', 
+              borderRadius: '8px', fontSize: '1rem', outlineColor: '#3e2723',
+              color: '#000000', // Yazı rengi net siyah
+              backgroundColor: '#ffffff'
             }} 
           />
         </div>
 
-        {/* Güzelleştirilmiş Dosya Yükleme Alanı */}
         <div style={{ marginBottom: '25px' }}>
           <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#3e2723' }}>
             Çizim Dosyası (STL, DXF, PNG...)
@@ -95,10 +102,7 @@ export default function Home() {
             <input 
               type="file" 
               onChange={(e) => setFile(e.target.files?.[0] || null)}
-              style={{ 
-                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', 
-                opacity: 0, cursor: 'pointer' 
-              }} 
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} 
             />
             <div style={{ fontSize: '1.5rem', marginBottom: '10px' }}>{file ? '📄' : '📤'}</div>
             <p style={{ color: '#5d4037', margin: 0, fontSize: '0.9rem', fontWeight: file ? '600' : '400' }}>
@@ -107,21 +111,18 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Gönder Butonu */}
         <button 
           onClick={basvuruYap}
           disabled={yukleniyor}
           style={{ 
             width: '100%', backgroundColor: yukleniyor ? '#a1887f' : '#3e2723', 
             color: '#fff', padding: '16px', border: 'none', borderRadius: '8px', 
-            cursor: yukleniyor ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: '1rem',
-            transition: 'background 0.3s'
+            cursor: yukleniyor ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: '1rem'
           }}
         >
           {yukleniyor ? "Yükleniyor..." : "Teklif Al ve Gönder"}
         </button>
 
-        {/* Mesaj Bildirimi */}
         {mesaj && (
           <div style={{ 
             marginTop: '20px', padding: '12px', borderRadius: '8px', textAlign: 'center',
