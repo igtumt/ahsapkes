@@ -4,35 +4,23 @@ import { Resend } from 'resend';
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: Request) {
-  console.log("--- E-posta Gönderimi Başladı ---");
-  
   try {
-    const body = await request.json();
-    console.log("Gelen Veri:", body);
+    const { email, fileUrl, orderCode, aciklama } = await request.json();
 
-    if (!process.env.RESEND_API_KEY) {
-      console.error("HATA: RESEND_API_KEY bulunamadı!");
-      return NextResponse.json({ error: "API Key eksik" }, { status: 500 });
-    }
-
-    const { data, error } = await resend.emails.send({
+    const data = await resend.emails.send({
       from: 'AhsapKes <onboarding@resend.dev>',
       to: ['isilaygamzetoluk@gmail.com'],
-      subject: 'Yeni Teklif Talebi Var! 🪵',
-      html: `<p>E-posta: ${body.email}</p><p>Dosya: ${body.fileUrl}</p>`
+      subject: `Yeni Sipariş: #${orderCode} 🪵`,
+      html: `
+        <h3>Yeni Teklif Talebi #${orderCode}</h3>
+        <p><strong>Müşteri:</strong> ${email}</p>
+        <p><strong>Açıklama:</strong> ${aciklama || "Belirtilmemiş"}</p>
+        <p><strong>Dosya:</strong> <a href="${fileUrl}">Dosyayı Görüntüle</a></p>
+      `
     });
 
-    if (error) {
-      console.error("Resend Hatası:", error);
-      return NextResponse.json({ error }, { status: 400 });
-    }
-
-    console.log("E-posta başarıyla sıraya alındı:", data);
-    return NextResponse.json({ success: true, data });
-    
-  } catch (err: any) {
-    console.error("Sistemsel Hata:", err.message);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json(data);
+  } catch (error) {
+    return NextResponse.json({ error });
   }
 }
-
